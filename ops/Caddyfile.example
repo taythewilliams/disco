@@ -1,0 +1,105 @@
+# Caddy on the venue MacBook (D14, Spike 4).
+#
+# Copy to ops/Caddyfile, fill in the two placeholders, and run:
+#
+#   CLOUDFLARE_API_TOKEN=… caddy run --config ops/Caddyfile
+#
+# The token is read from the environment, never written here — this file is in
+# the repository and a DNS token in source control is a DNS token on GitHub
+# (D12). Scope it to Zone:DNS:Edit on the one zone and nothing else.
+#
+# ── Why DNS-01 ──────────────────────────────────────────────────────────────
+#
+# HTTP-01 proves ownership by serving a file over the public internet. This
+# server has no public reachability: the A record points at a private address on
+# the venue LAN. DNS-01 proves ownership with a temporary TXT record instead,
+# which is why the Cloudflare plugin is a hard requirement rather than a
+# convenience.
+#
+# Self-signed is not an alternative. Service workers refuse to register on an
+# origin with a certificate error even after the user clicks through, and no
+# service worker means no PWA install, no offline shell and no persistent
+# storage (D14, D15).
+#
+# ── The build ───────────────────────────────────────────────────────────────
+#
+# Stock Caddy has no DNS providers compiled in. Either:
+#
+#   brew install xcaddy
+#   xcaddy build --with github.com/caddy-dns/cloudflare
+#
+# or download a build with the Cloudflare module from caddyserver.com/download.
+# `caddy list-modules | grep dns.providers` should print `dns.providers.cloudflare`.
+# Getting this wrong fails at first issuance with an unhelpful error, so check it
+# before the venue.
+
+{
+	# Where the account key and certificates live. Kept next to the config so
+	# "did it renew?" is answerable by looking at one directory, and so a laptop
+	# rebuild does not silently lose the account.
+	storage file_system {
+		root ./ops/caddy-data
+	}
+
+	# Swap to the staging endpoint while iterating: Let's Encrypt's production
+	# rate limits are per registered domain per week, and five failed attempts
+	# on a Sunday afternoon will lock you out until the following one.
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+
+	email you@example.com
+}
+
+# Replace with the real hostname. The public A record for it points at the
+# MacBook's static LAN address — unusual but valid, and standard for this
+# situation (D14 step 2). Keep the record DNS-only in Cloudflare: a proxied
+# (orange-cloud) record makes guests resolve to Cloudflare's edge instead of the
+# MacBook, which fails silently and looks like a networking problem.
+party.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		# Cloudflare's own resolvers, so propagation checks do not consult a
+		# venue resolver that is caching the absence of the TXT record.
+		resolvers 1.1.1.1 1.0.0.1
+	}
+
+	encode zstd gzip
+
+	# The app never handles TLS: Caddy terminates and proxies to the
+	# unprivileged port Node listens on, so the Node process never needs root
+	# to bind 443 (D12, D14 step 4).
+	reverse_proxy 127.0.0.1:3000 {
+		# The WebSocket carries clock sync; a proxy that gives up on an idle
+		# socket would disconnect the room between tracks.
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+
+	header {
+		# One event, one origin, no third-party anything. `connect-src` covers
+		# the WebSocket; `media-src` covers the fMP4 segments.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		# The projector and the dashboard are the only pages that would ever
+		# want a camera or a microphone, and neither does. Mic access in
+		# particular would switch iOS Bluetooth to the call profile and change
+		# the audio latency of every guest who granted it (D1).
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		# One night, not a year: a stale HSTS pin on a guest's phone outlives
+		# the event and the domain's usefulness for it.
+		Strict-Transport-Security "max-age=86400"
+		-Server
+	}
+
+	log {
+		output file ./ops/caddy-data/access.log {
+			roll_size 10MiB
+			roll_keep 3
+		}
+		# Connection events, not payloads. Comment text must never reach a log
+		# file — it is ephemeral by decision (D7, D12).
+		format json
+	}
+}

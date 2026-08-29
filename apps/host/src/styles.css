@@ -1,0 +1,251 @@
+/* Plain and legible. This runs on a laptop in a dark room at 1am, so the
+   contrast is high, the type is large, and nothing depends on colour alone. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --line: #262b36;
+  --text: #e6e9ef;
+  --muted: #939bab;
+  --accent: #6ee7b7;
+  --bad: #f87171;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.dashboard {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+h1, h2, h3 { margin: 0 0 12px; font-size: 1rem; letter-spacing: 0.02em; }
+h3 { margin-top: 16px; color: var(--muted); }
+.muted { color: var(--muted); }
+.error { color: var(--bad); }
+
+.status {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.status .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.status.live .dot { background: var(--accent); }
+.status.reconnecting .dot, .status.connecting .dot { background: #fbbf24; }
+.status.closed .dot { background: var(--bad); }
+
+/* The active moderation mode is always on screen, never behind a menu (D7). */
+.mode { margin-left: auto; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); }
+.mode.open { border-color: #fbbf24; color: #fbbf24; }
+.mode.review { border-color: var(--accent); color: var(--accent); }
+
+.track { font-size: 1.15rem; margin: 0 0 4px; }
+.times { color: var(--muted); font-variant-numeric: tabular-nums; margin: 0 0 12px; }
+.remaining { color: var(--text); }
+
+.scrub, .search { width: 100%; }
+.search { padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+
+.transport { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+button {
+  background: var(--line);
+  color: var(--text);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+/* Reachable without scrolling or navigating: this is the "something is on
+   screen and I need it gone" control (D7). */
+.panic { width: 100%; margin-bottom: 12px; }
+.panic.active { background: var(--bad); color: #1a0d0d; font-weight: 600; }
+
+.queue, .library, .comments { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; }
+.queue li, .library li, .comments li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.queue em, .library em { color: var(--muted); font-style: normal; }
+
+/* Thumb-sized targets: these get used while doing something else (D7). */
+.comments button { min-width: 96px; }
+
+.telemetry { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.telemetry th, .telemetry td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.telemetry th { color: var(--muted); font-weight: 500; }
+.telemetry .bad { color: var(--bad); }
+
+.status .pending { color: #fbbf24; }
+.status .pending.none { color: var(--muted); }
+.status .venue { color: var(--muted); }
+.mode.hidden-feed { border-color: var(--bad); color: var(--bad); }
+.telemetry tr.playing td:first-child::before { content: "▶ "; color: var(--accent); }
+
+/* Readiness: "28/30 ready". Partial sits behind ready rather than adding to
+   it — a track half the room can *start* is not a track the room is ready
+   for, and one merged bar would read as safer than it is (D5). */
+.readiness { display: grid; gap: 4px; margin: 6px 0; }
+.readiness-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.readiness-bar span { position: absolute; inset: 0 auto 0 0; height: 100%; }
+.readiness-partial { background: #fbbf24; opacity: 0.55; }
+.readiness-ready { background: var(--accent); }
+.readiness-label { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.readiness-label em { font-style: normal; color: #fbbf24; }
+
+.queue-track { display: grid; gap: 2px; flex: 1; }
+.trim { display: grid; gap: 4px; margin: 12px 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.trim input { width: 100%; }
+
+.library-controls { display: flex; gap: 8px; margin-bottom: 8px; }
+.library-controls select, .library-controls input[type="number"] {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+}
+/* Windowed: the library is thousands of tracks and only what is on screen
+   exists in the DOM (D10). */
+.library-viewport { overflow-y: auto; border-top: 1px solid var(--line); }
+.library-viewport .library { max-height: none; overflow: visible; }
+.library-viewport .library li { box-sizing: border-box; }
+
+.crates { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.crate { display: flex; }
+.crate button { border-radius: 6px 0 0 6px; }
+.crate .crate-delete { border-radius: 0 6px 6px 0; padding: 10px 12px; color: var(--muted); }
+.crate em { color: var(--muted); font-style: normal; }
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.setting { display: grid; gap: 4px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.setting select, .setting input[type="number"] {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+}
+.setting span { font-size: 0.85rem; }
+
+.signin { max-width: 380px; margin: 15vh auto; display: grid; gap: 12px; }
+.signin input { padding: 10px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+
+.loading { text-align: center; margin-top: 20vh; }
+
+/* ── The projector (D8) ─────────────────────────────────────────────────────
+   A bright object in a dark room, read from across it. Type is enormous, the
+   palette is the channel's, and nothing here is interactive: this screen has
+   no controls because the display role cannot send anything that changes
+   anything. */
+
+.display {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #05060a;
+  cursor: none;
+}
+
+.display-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.display-content {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 4vh 5vw;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.display-now { align-self: start; }
+.display-channel {
+  display: inline-block;
+  padding: 4px 18px;
+  border-radius: 999px;
+  border: 2px solid var(--channel);
+  color: var(--channel);
+  font-size: 1.6vw;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.display-now h1 {
+  margin: 2vh 0 0;
+  font-size: 6vw;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.display-now p { margin: 1vh 0 0; font-size: 3vw; color: var(--muted); }
+
+.display-join { align-self: center; justify-self: center; display: grid; gap: 1.5vh; }
+.display-join svg { width: 22vh; height: 22vh; border-radius: 8px; }
+.display-join p { margin: 0; font-size: 2vw; color: var(--muted); }
+
+/* Newest last, so the eye tracks downwards the way a conversation does. */
+.display-feed {
+  align-self: end;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.2vh;
+}
+.display-feed li {
+  font-size: 2.4vw;
+  line-height: 1.2;
+  /* Guest text, at projector size. Long words and pasted runs must wrap rather
+     than push the layout off screen (D7). */
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+.display-feed li:last-child { color: var(--channel); }
+
+.display-debug {
+  position: absolute;
+  right: 1vw;
+  bottom: 1vh;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

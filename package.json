@@ -1,0 +1,35 @@
+{
+  "name": "disco",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "ingest": "npm run ingest --workspace @disco/ingest --",
+    "harness": "tsx packages/server/test/harness/run.ts",
+    "preflight": "node --env-file=.env ops/scripts/preflight.mjs",
+    "cert-check": "node ops/scripts/cert-check.mjs",
+    "dev:server": "npm run start --workspace @disco/server",
+    "dev:host": "npm run dev --workspace @disco/host"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true,
+    "esbuild@0.25.12": true
+  }
+}

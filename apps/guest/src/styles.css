@@ -1,0 +1,132 @@
+/* A phone, in a dark room, held in one hand.
+   Big targets, high contrast, no hover states, nothing that needs two hands. */
+
+:root {
+  color-scheme: dark;
+  /* Range inputs and checkboxes pick this up, so the calibration slider and
+     the volume slider match the app rather than the browser. */
+  accent-color: #6ee7b7;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --line: #262b36;
+  --text: #e6e9ef;
+  --muted: #939bab;
+  --accent: #6ee7b7;
+  --bad: #f87171;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 17px;
+  /* No pull-to-refresh: a guest scrolling the comment field should not reload
+     the app mid-set. */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+.screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+h1 { font-size: 1.6rem; margin: 0; line-height: 1.2; }
+.lede { color: var(--muted); margin: 0; line-height: 1.5; }
+.muted { color: var(--muted); }
+.error { color: var(--bad); margin: 4px 0 0; }
+
+label { display: block; color: var(--muted); font-size: 0.9rem; margin-bottom: 6px; }
+
+input[type='text'], input:not([type]), input[type='search'], textarea {
+  width: 100%;
+  padding: 14px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  /* 17px or larger, or iOS zooms the page when the field takes focus. */
+  font-size: 17px;
+  font-family: inherit;
+}
+
+button {
+  font: inherit;
+  border-radius: 12px;
+  /* Thumb-sized. These get pressed one-handed, in the dark, while dancing. */
+  min-height: 52px;
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+button.primary { background: var(--accent); color: #06231a; border-color: transparent; font-weight: 600; }
+button.ghost { background: transparent; }
+button.ghost.quiet { color: var(--muted); border-color: transparent; }
+button:disabled { opacity: 0.45; }
+
+/* ── Join ── */
+.join { justify-content: center; }
+.join form { display: grid; gap: 12px; }
+.ios-install { border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.ios-install summary { cursor: pointer; min-height: 32px; }
+.ios-install ol { margin: 12px 0 8px; padding-left: 20px; line-height: 1.8; }
+
+/* ── Calibrate ── */
+.presets { display: grid; gap: 12px; }
+.preset { display: grid; gap: 2px; text-align: left; padding: 16px; min-height: 72px; }
+.preset span { color: var(--muted); font-size: 0.9rem; }
+
+.pulse-stage {
+  display: grid;
+  place-items: center;
+  height: 190px;
+}
+.pulse {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: var(--accent);
+  /* No CSS transition: the pulse is driven frame by frame off the audio clock,
+     and an interpolation between frames would put the visual somewhere the
+     audio never was. */
+  will-change: transform, opacity;
+}
+
+.calibration-slider { width: 100%; height: 44px; }
+.reading {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.3rem;
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ── Player ── */
+.player { justify-content: space-between; }
+.now { text-align: center; margin-top: 8vh; }
+.phase { color: var(--muted); margin: 0 0 12px; font-size: 0.95rem; }
+.reconnecting { color: #fbbf24; }
+.artist { color: var(--muted); margin: 6px 0 0; }
+
+.volume { margin: 0; }
+.volume input { width: 100%; height: 44px; }
+
+.comment { display: grid; gap: 8px; }
+.comment-row { display: flex; align-items: center; gap: 12px; }
+.comment-row .count { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3ch; }
+.comment-row .count.low { color: #fbbf24; }
+.comment-row button { flex: 1; }
+
+.tuning { display: grid; gap: 8px; }

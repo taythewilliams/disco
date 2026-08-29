@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Source audio, generated segments, artwork, peaks, and the SQLite store.
+# Never committed: large, binary, and the library is not ours to redistribute.
+media/
+
+# Secrets: DNS API token, event code, DJ credential (D12).
+.env
+.env.*
+!.env.example
+
+# Caddy's account key, certificates and access log. Generated, and the account
+# key is a credential (D12).
+ops/caddy-data/
+ops/Caddyfile
