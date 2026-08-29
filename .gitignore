@@ -15,3 +15,6 @@ media/
 # key is a credential (D12).
 ops/caddy-data/
 ops/Caddyfile
+
+# Runtime logs from ops/scripts/disco.sh
+ops/logs/

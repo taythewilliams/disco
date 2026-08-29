@@ -46,8 +46,27 @@ export default defineConfig({
         // Never let the navigation fallback swallow these: `/ws` is a WebSocket
         // upgrade, `/api` is live state, `/media` is audio. A cached answer to
         // any of them is a bug that presents as the room being out of sync.
+        //
+        // The rest of the list is everything else this origin serves that is
+        // *not* the guest app. Without them, a device that has ever loaded the
+        // PWA gets the guest shell for every path on the origin:
+        //
+        //   `/selfcheck` — the diagnostic page, swallowed by the very app it
+        //     exists to diagnose. Observed on an iPhone during Spike 4, which
+        //     is exactly how it would have been discovered at the venue.
+        //   `/dj`, `/display`, `/host/` — the dashboard and the projector. The
+        //     DJ's laptop and the projector machine are the most likely devices
+        //     to have loaded the guest app while testing.
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/ws$/],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/media\//,
+          /^\/ws$/,
+          /^\/selfcheck/,
+          /^\/dj$/,
+          /^\/display$/,
+          /^\/host\//,
+        ],
         runtimeCaching: [],
         cleanupOutdatedCaches: true,
       },

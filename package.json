@@ -17,7 +17,10 @@
     "harness": "tsx packages/server/test/harness/run.ts",
     "preflight": "node --env-file=.env ops/scripts/preflight.mjs",
     "cert-check": "node ops/scripts/cert-check.mjs",
-    "dev:server": "npm run start --workspace @disco/server",
+    "dev:server": "node --env-file=.env --import tsx packages/server/src/main.ts",
+    "up": "ops/scripts/disco.sh up",
+    "down": "ops/scripts/disco.sh down",
+    "status": "ops/scripts/disco.sh status",
     "dev:host": "npm run dev --workspace @disco/host"
   },
   "devDependencies": {

@@ -14,7 +14,7 @@ That document is the **decision register** — it says *what* and *why*, and sta
 | Channels at v1 | **One.** N>1 modelled throughout, shipped behind a flag | `channelId` on every message and row from day one (D3). No channel-pick UI in v1 onboarding. |
 | Library size | **Thousands of tracks** | Promotes dashboard search + BPM/key sort into Phase 3 scope. Ingest must be resumable, idempotent, parallel (D10). |
 | Target date | None fixed | Keep v4's risk-ordered sequencing. Phase 0 first, ship on milestones not dates. |
-| DNS | **Cloudflare** for the zone; registration stays at Namecheap | Namecheap's API eligibility rules and IP allowlisting would break venue-side renewal. Cloudflare Free covers authoritative DNS and scoped tokens at no cost. |
+| DNS | ~~**Cloudflare** for the zone~~ → **superseded: zone stays in cPanel, certificate issued manually** | The zone carries live mail (`MX` to the host, SPF, DKIM) and cPanel's DNS has no Caddy provider module, so moving it would put the domain's email in the path of a party for no automation gain. Manual DNS-01 instead, renewed before each event. See [Spike 4](docs/spikes/04-https-lan.md). |
 
 ### Not yet in hand
 
@@ -125,7 +125,7 @@ No code depends on these, and their results change what you build. Run them in t
 
 The long pole. Start it before any other work.
 
-**Step 0 — move the zone to Cloudflare.** Decided. Registration stays at Namecheap; only the nameservers change. Free plan, no new cost.
+**Step 0 — superseded. The zone does not move.** See [docs/spikes/04-https-lan.md](docs/spikes/04-https-lan.md) for what was done instead and why: the TXT record is added by hand in cPanel and Caddy is handed the resulting files. The steps below are kept for the day the zone does move — to Cloudflare, or to deSEC for a delegated `party.` subdomain, which is the upgrade path if manual renewal becomes annoying.
 
 1. **Audit the existing Namecheap records first**, especially `MX`, `SPF`, `DKIM`, `DMARC`. Cloudflare's import scan catches most records but is not guaranteed complete, and Cloudflare Free only supports full nameserver delegation — partial/CNAME setup is a paid plan, so the whole zone moves. If the domain carries email you depend on, a missed MX or SPF record is the failure mode here, not anything to do with certificates.
 2. Add the zone in Cloudflare, review the imported records against your audit, then change nameservers at Namecheap. Cloudflare emails when the zone goes active — usually well under an hour.
@@ -179,7 +179,9 @@ Matrix: Safari tab vs installed PWA × WebAudio vs MediaElement × screen locked
 
 - [ ] Buy the AP (Ubiquiti U6/U7 or Omada class, D13).
 - [ ] Recruit 5–8 people for Spike 3.
-- [ ] Move the zone to Cloudflare — audit records first, especially email (Spike 4 step 0).
+- [x] ~~Move the zone to Cloudflare~~ — not needed; certificate issued by manual DNS-01 against the existing cPanel zone (Spike 4, passed 2026-08-29).
+- [ ] **Renew the certificate before every event** — `ops/scripts/renew-cert.sh`, then `npm run cert-check`. Manual issuance means nothing renews on its own.
+- [ ] **Check the AP supports local DNS entries before buying.** The venue's uplink router cannot be the resolver guests are handed: DNS rebinding protection strips private-address answers, measured on real hardware in Spike 4.
 - [ ] Confirm the music library's legal footing matches v4's assumption — private, non-ticketed, not publicly advertised. If any of those change, get jurisdiction-specific advice before the event.
 
 ---
@@ -253,7 +255,7 @@ Because the library is thousands of tracks, three requirements that would otherw
 - AP configured: 5 GHz, venue channel scan, 40 MHz width, legacy low data rates disabled, client isolation on **with the server verified reachable**, DHCP reservation for the MacBook, local DNS entry.
 - Server wired to the AP. Never on Wi-Fi.
 - 4G/5G uplink up, so phones' OS connectivity checks pass and don't silently fall back to cellular.
-- Certificate verified and renewed **before** the event. Caddy auto-renews only if it can reach the Cloudflare API, which needs the uplink — verify manually rather than trusting it. An expired certificate at the door is the same failure as a self-signed one: no service worker, no PWA.
+- Certificate renewed **before** the event with `ops/scripts/renew-cert.sh`, then verified with `npm run cert-check`. Issuance is manual (Spike 4), so nothing renews on its own and there is no API to fail quietly — the failure mode is simply forgetting. An expired certificate at the door is the same failure as a self-signed one: no service worker, no PWA.
 - Projector offset calibrated in the actual room, on the actual projector.
 - QR assets printed large: Wi-Fi join and app URL, on every table.
 - Failure UX written and tested: server unreachable, track not ready, storage full, install declined.

@@ -1,38 +1,53 @@
 # Caddy on the venue MacBook (D14, Spike 4).
 #
-# Copy to ops/Caddyfile, fill in the two placeholders, and run:
+# Copy to ops/Caddyfile, set the hostname, and run:
 #
-#   CLOUDFLARE_API_TOKEN=… caddy run --config ops/Caddyfile
+#   sudo caddy run --config ops/Caddyfile
 #
-# The token is read from the environment, never written here — this file is in
-# the repository and a DNS token in source control is a DNS token on GitHub
-# (D12). Scope it to Zone:DNS:Edit on the one zone and nothing else.
+# `sudo` because 443 is a privileged port and macOS has no capabilities to hand
+# it to a normal user. Only Caddy runs elevated; the Node app stays a normal
+# user on a high port, which is the property D12 actually asks for.
 #
 # ── Why DNS-01 ──────────────────────────────────────────────────────────────
 #
 # HTTP-01 proves ownership by serving a file over the public internet. This
 # server has no public reachability: the A record points at a private address on
-# the venue LAN. DNS-01 proves ownership with a temporary TXT record instead,
-# which is why the Cloudflare plugin is a hard requirement rather than a
-# convenience.
+# the venue LAN. DNS-01 proves ownership with a temporary TXT record instead.
 #
 # Self-signed is not an alternative. Service workers refuse to register on an
 # origin with a certificate error even after the user clicks through, and no
 # service worker means no PWA install, no offline shell and no persistent
 # storage (D14, D15).
 #
-# ── The build ───────────────────────────────────────────────────────────────
+# ── Two ways to get the certificate ─────────────────────────────────────────
 #
-# Stock Caddy has no DNS providers compiled in. Either:
+# **Manual issuance (the current choice).** The zone lives in cPanel on shared
+# hosting, whose DNS has no Caddy provider module, and the domain carries live
+# mail — moving the zone to get one certificate would put the mail records in
+# the path of a party. So the TXT record is added by hand and Caddy is handed
+# the resulting files. See `docs/spikes/04-https-lan.md` for the procedure and
+# `ops/scripts/renew-cert.sh` for the command.
+#
+# The cost is honest: renewal is a manual step before every event, which is why
+# `npm run cert-check` is on the pre-event checklist rather than a nicety.
+#
+# **Automated issuance**, if the zone ever moves to a provider with a module
+# (Cloudflare, deSEC, Route53, …): drop the `tls` line below for this block,
+# and build Caddy with the module — stock Caddy has no DNS providers compiled
+# in:
 #
 #   brew install xcaddy
 #   xcaddy build --with github.com/caddy-dns/cloudflare
+#   caddy list-modules | grep dns.providers
 #
-# or download a build with the Cloudflare module from caddyserver.com/download.
-# `caddy list-modules | grep dns.providers` should print `dns.providers.cloudflare`.
-# Getting this wrong fails at first issuance with an unhelpful error, so check it
-# before the venue.
-
+#   tls {
+#       dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+#       resolvers 1.1.1.1 1.0.0.1
+#   }
+#
+# A token in that form is read from the environment and never written here:
+# this file is in the repository, and a DNS token in source control is a DNS
+# token on GitHub (D12).
 {
 	# Where the account key and certificates live. Kept next to the config so
 	# "did it renew?" is answerable by looking at one directory, and so a laptop
@@ -41,26 +56,24 @@
 		root ./ops/caddy-data
 	}
 
-	# Swap to the staging endpoint while iterating: Let's Encrypt's production
-	# rate limits are per registered domain per week, and five failed attempts
-	# on a Sunday afternoon will lock you out until the following one.
-	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
-
+	# Nothing here issues certificates: the `tls` line below points at files
+	# certbot already wrote. Kept so that switching to automated issuance later
+	# is one uncommented line rather than a rewrite.
 	email you@example.com
 }
 
 # Replace with the real hostname. The public A record for it points at the
-# MacBook's static LAN address — unusual but valid, and standard for this
-# situation (D14 step 2). Keep the record DNS-only in Cloudflare: a proxied
-# (orange-cloud) record makes guests resolve to Cloudflare's edge instead of the
-# MacBook, which fails silently and looks like a networking problem.
+# MacBook's LAN address — unusual but valid, and standard for this situation
+# (D14 step 2).
 party.example.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-		# Cloudflare's own resolvers, so propagation checks do not consult a
-		# venue resolver that is caching the absence of the TXT record.
-		resolvers 1.1.1.1 1.0.0.1
-	}
+	# Certificate and key from the manual DNS-01 run. certbot writes symlinks
+	# here that move on each renewal; Caddy follows them, so the paths do not
+	# change from event to event.
+	#
+	# Absolute paths, and no `~`: Caddy runs under sudo, whose home is not
+	# yours, and a relative path would resolve against whatever directory it
+	# was started from.
+	tls /Users/you/.disco-certs/config/live/party.example.com/fullchain.pem /Users/you/.disco-certs/config/live/party.example.com/privkey.pem
 
 	encode zstd gzip
 
@@ -93,13 +106,14 @@ party.example.com {
 		-Server
 	}
 
+	# To stdout, not to a file in the repository. Caddy runs under sudo, and a
+	# root-owned log file inside the working tree is a small trap: every later
+	# `caddy validate` as your own user fails on it. Redirect if you want a
+	# file.
+	#
+	# Connection events, not payloads. Comment text must never reach a log —
+	# it is ephemeral by decision (D7, D12).
 	log {
-		output file ./ops/caddy-data/access.log {
-			roll_size 10MiB
-			roll_keep 3
-		}
-		# Connection events, not payloads. Comment text must never reach a log
-		# file — it is ephemeral by decision (D7, D12).
-		format json
+		format console
 	}
 }
